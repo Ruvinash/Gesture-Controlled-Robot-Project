@@ -1,0 +1,68 @@
+#include <Wire.h>
+#include <Adafruit_PWMServoDriver.h>
+
+Adafruit_PWMServoDriver pca = Adafruit_PWMServoDriver(0x40);
+
+const int SERVO_FREQ = 50;
+int SERVO_MIN = 120;
+int SERVO_MAX = 600;
+
+int angleToPulse(int angle) {
+  angle = constrain(angle,0,180);
+  return map(angle,0,180,SERVO_MIN,SERVO_MAX);
+}
+
+void setServo(int ch, int angle) {
+  pca.setPWM(ch,0,angleToPulse(angle));
+}
+
+void setup() {
+  pinMode(LED_BUILTIN,OUTPUT);
+
+  Serial.begin(9600);
+  Wire.begin();
+
+  pca.begin();
+  pca.setPWMFreq(SERVO_FREQ);
+  delay(10);
+
+  for(int i=0;i<6;i++) setServo(i,90);
+
+  Serial.println("READY_SERVO");
+}
+
+void loop() {
+
+  if(!Serial.available()) return;
+
+  String line = Serial.readStringUntil('\n');
+  line.replace("\r","");
+  line.trim();
+
+  int a0,a1,a2,a3,a4,a5;
+
+  // INT parsing instead of FLOAT
+  int matched = sscanf(line.c_str(),
+    "%d,%d,%d,%d,%d,%d",
+    &a0,&a1,&a2,&a3,&a4,&a5);
+
+  if(matched==6){
+
+    digitalWrite(LED_BUILTIN,HIGH);
+
+    setServo(0,a0);
+    setServo(1,a1);
+    setServo(2,a2);
+    setServo(3,a3);
+    setServo(4,a4);
+    setServo(5,a5);
+
+    digitalWrite(LED_BUILTIN,LOW);
+
+    Serial.println("OK");
+  }
+  else{
+    Serial.print("BAD_LINE: ");
+    Serial.println(line);
+  }
+}
